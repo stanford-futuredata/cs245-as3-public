@@ -1,0 +1,12 @@
+#!/usr/bin/env bash
+
+cd /autograder/submission/
+yes | cp -f *.java /autograder/source/src/cs245/as3/
+
+cd /autograder/source
+export M2_HOME=/opt/maven
+export PATH=${M2_HOME}/bin:${PATH}
+
+mvn -q package
+
+java -Xmx1536m -Xms1536m -XX:-TieredCompilation -jar target/tests.jar > /autograder/results/results.json
