@@ -1,6 +1,8 @@
 package cs245.as3.driver;
 
 import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map.Entry;
 import java.util.Random;
 
 import org.junit.Rule;
@@ -433,13 +435,8 @@ public class TransactionManagerTests {
 		//... or if the log ever became too long:
 		assert(maxLogSizeUntruncated < 30000);
 	}
-
-    /**
-      * Test that the transaction manager is doing something smart with log truncation
-      */
-    @Test
-    @GradedTest(name="TestRepeatedFailures", number="4", points=3.0)
-    public void TestRepeatedFailures() {
+   
+    public void TestRepeatedFailuresTemplate(double failureRate) {
 		LogManagerImpl lm = new LogManagerImpl();
 		StorageManagerImpl sm = new StorageManagerImpl();
 		TransactionManager tm = new TransactionManager();
@@ -450,29 +447,32 @@ public class TransactionManagerTests {
 		
 		Random r = new Random(TEST_SEEDS[0]);
 
-		byte[] lastSuccess = null;
+		//Track what the correct values are for each key across crashes for testing purposes:
+		HashMap<Long, byte[]> lastCommittedValues = new HashMap();
 		
 		//Really stress recovery after repeated crashes. We make sure to succeed at least the first time.
 		//Don't persist any of these keys for this experiment. We want to have to recover from the full log every time.
-		sm.blockPersistenceForKeys(new long[] {0,1,2,3,4,5,6,7,8,9});
-		int nTrials = 10;
+		sm.blockPersistenceForKeys(new long[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14});
+		int nTrials = 50;
+		int numCrashes = 0;
 		for(int trial = 0; trial < nTrials; trial++) {
-			int numWrites = 10 + r.nextInt(10);
-			long TXid = trial;
+			int numWrites = 10 + r.nextInt(5);
+			long writeOffset = r.nextInt(5);
+			long TXid = trial * 2;
 			tm.start(TXid);
-			boolean shouldCrash = r.nextBoolean() && (trial != 0);
+			boolean shouldCrash = (r.nextDouble() < failureRate) && (trial != 0);
 			boolean shouldAbort = r.nextBoolean() && (trial != 0); //Just to see if they're doing something weird with abort.
 			if (shouldCrash) {
 				lm.stopServingRequestsAfterIOs(5);
 			}
 			try {
-				byte[] value = new byte[100];
-				r.nextBytes(value);
-				if (!shouldCrash && !shouldAbort) {
-					lastSuccess = value;
-				}
 				for(int i = 0; i < numWrites; i++) {
-					tm.write(TXid, i, value);
+					byte[] value = new byte[100];
+					r.nextBytes(value);
+					if (!shouldCrash && !shouldAbort) {
+						lastCommittedValues.put(i + writeOffset, value);
+					}
+					tm.write(TXid, i + writeOffset, value);
 				}
 				if (shouldAbort) {
 					tm.abort(TXid);
@@ -492,12 +492,51 @@ public class TransactionManagerTests {
 				sm.in_recovery = true;
 				tm.initAndRecover(sm, lm);
 				sm.in_recovery = true;
+				numCrashes++;
 			}
+			//Check that the TransactionManager and StorageManager both match 
+			//the values in lastCommittedValues
+			long TXidforRead = trial * 2 + 1;
+			tm.start(TXidforRead);
+			for(Entry<Long, byte[]> entry : lastCommittedValues.entrySet()) {
+				String crashesDescription="V";
+				if (numCrashes > 0) {
+					crashesDescription=String.format("After %d crashes, v", numCrashes);
+				}
+				byte[] read = tm.read(TXidforRead, entry.getKey());
+				if (!Arrays.equals(entry.getValue(), read)) {
+					System.out.printf("%salue for key %d did not match what was committed (wanted %s..., got %s...).",
+							crashesDescription,
+							entry.getKey(),
+							Arrays.toString(entry.getValue()).substring(0, 10),
+							Arrays.toString(read).substring(0, 10)
+					);
+					assert(false);
+				}
+			}
+			tm.abort(TXidforRead);
 		}
-		assert(lastSuccess != null);
-		long key = r.nextInt(10);
-		long TXid = nTrials;
-		byte[] readValue = tm.read(TXid, key);
-		assert(Arrays.equals(lastSuccess, readValue));
 	}
+    
+    /**
+      * Test that the transaction manager is doing something smart with log truncation
+      */
+    @Test
+    @GradedTest(name="TestRepeatedFailures", number="4", points=3.0)
+    public void TestRepeatedFailures() {
+    	TestRepeatedFailuresTemplate(0.1);
+    	TestRepeatedFailuresTemplate(0.1);
+    	TestRepeatedFailuresTemplate(0.1);
+    }
+    
+    /**
+      * Test with even more failures.
+      */
+    @Test
+    @GradedTest(name="TestRepeatedFailures2", number="4", points=3.0)
+    public void TestRepeatedFailures2() {
+    	TestRepeatedFailuresTemplate(0.5);
+    	TestRepeatedFailuresTemplate(0.5);
+    	TestRepeatedFailuresTemplate(0.5);
+    }
 }

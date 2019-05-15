@@ -137,15 +137,17 @@ public class InterleavedTransactionManagerTests {
 			} catch (CrashException e) {
 				//We expect to fail here.
 			}
-			//Check if either txn has been queued to the storage manager (one of them should be assuming a 
-			//durable implementation.)
-			if (T1.lastTxnCommitted.checkWritesQueued(TXidForRead, sm)) {
-				System.out.println("T1's last committed TXN is queued to the storage manager.");
-			} else if (T2.lastTxnCommitted.checkWritesQueued(TXidForRead, sm)){
-				System.out.println("T2's last committed TXN is queued to the storage manager.");
-			} else {
-				System.out.println("Neither threads' last commit was queued to the storage manager - we're going to call that an error.");
-				assert(false);
+			if (check_recovery) {
+				//Check if either txn has been queued to the storage manager (one of them should be assuming a 
+				//durable implementation.)
+				if (T1.lastTxnCommitted.checkWritesQueued(TXidForRead, sm)) {
+					System.out.println("T1's last committed TXN is queued to the storage manager.");
+				} else if (T2.lastTxnCommitted.checkWritesQueued(TXidForRead, sm)){
+					System.out.println("T2's last committed TXN is queued to the storage manager.");
+				} else {
+					System.out.println("Neither threads' last commit was queued to the storage manager - we're going to call that an error.");
+					assert(false);
+				}
 			}
 		}
 			
@@ -180,7 +182,7 @@ public class InterleavedTransactionManagerTests {
 	}
 
     @Test
-    @GradedTest(name="TestCoupledWrites", number="2", points=3.0)
+    @GradedTest(name="TestCoupledWrites", number="2", points=0.0)
     public void TestCoupledWrites(){
     	TestTransactionsTemplate(false, Workloads.CoupledWritesTransaction.class);
     	TestTransactionsTemplate(false, Workloads.CoupledWritesTransaction.class);
