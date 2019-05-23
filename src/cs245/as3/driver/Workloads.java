@@ -14,6 +14,7 @@ public class Workloads {
 		public boolean check(long TXid, TransactionManager tm);
 		public boolean checkWritesQueued(long TXid, StorageManagerImpl sm);
 		public void copy(Transaction lastTxn);
+		public Transaction clone();
 	}
 
 	/**
@@ -64,6 +65,12 @@ public class Workloads {
 			a=o.a;
 			b=o.b;
 			order=o.order;
+		}
+
+		public Transaction clone() {
+			Transaction toRet = new CoupledWritesTransaction();
+			toRet.copy(this);
+			return toRet;
 		}
 
 		public boolean check(long txID, TransactionManager tm) {
@@ -125,6 +132,12 @@ public class Workloads {
 			x = o.x;
 			a = o.a;
 			order = o.order;
+		}
+		
+		public Transaction clone() {
+			Transaction toRet = new BigTransaction();
+			toRet.copy(this);
+			return toRet;
 		}
 		
 		@Override

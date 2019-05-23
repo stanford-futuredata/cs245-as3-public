@@ -13,9 +13,8 @@ public class As3Grader {
     }
     
 	public static void main(String[] args) {
-		TransactionManagerTests.TEST_SEEDS[0] = 1;
-		InterleavedTransactionManagerTests.TEST_SEEDS[0] = 2;
-		InterleavedTransactionManagerTests.TEST_SEEDS[1] = 3;
+		TransactionManagerTests.TEST_SEEDS = new long[] {1,2,3,4};
+		InterleavedTransactionManagerTests.TEST_SEEDS = new long[] {5,6,7,8};
 
 		Grader grader = new Grader();
 		GradescopeJsonObserver observer = new GradescopeJsonObserver();

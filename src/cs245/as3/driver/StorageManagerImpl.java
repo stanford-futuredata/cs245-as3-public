@@ -6,6 +6,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import cs245.as3.TransactionManager;
+import cs245.as3.driver.LogManagerImpl.CrashException;
 import cs245.as3.interfaces.StorageManager;
 	
 /**
@@ -170,7 +171,11 @@ public class StorageManagerImpl implements StorageManager {
 			if (!shouldPersist(entry.getKey())) {
 				continue;
 			}
-			did_work |= persist(entry.getKey(), sme);
+			try {
+				did_work |= persist(entry.getKey(), sme);
+			} catch (CrashException e) {
+				//Ignore crash exception.
+			}
 		}
 		return did_work;
 	}

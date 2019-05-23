@@ -20,7 +20,7 @@ import cs245.as3.driver.LogManagerImpl.CrashException;
 public class TransactionManagerTests {
 	
 	//Test seeds will be modified by the autograder
-    protected static long[] TEST_SEEDS = new long[] {0x12345671234567L};
+    protected static long[] TEST_SEEDS = new long[] {0x12345671234567L, 0x1000, 42, 9};
     
 	@Rule
     public Timeout globalTimeout = Timeout.seconds(10);
@@ -71,7 +71,7 @@ public class TransactionManagerTests {
 				tm.start(txID);
 				long key = 10;
 				byte[] readC = tm.read(txID, key);
-				System.out.println(Arrays.toString(readC)); //should return 1,2,3
+				System.out.println(Arrays.toString(readC)); //should return 1 .. 8
 				if (!Arrays.equals(testValue, readC)) {
 					System.out.println("Did not recover committed write.");
 					errors++;
@@ -85,15 +85,11 @@ public class TransactionManagerTests {
     @GradedTest(name="TestTransaction", number="1", points=0)
     public void TestTransaction() {
 		TestTransactionTemplate(false);
-		TestTransactionTemplate(false);
-		TestTransactionTemplate(false);
 	}
 	
     @Test
     @GradedTest(name="TestRecovery", number="2", points=3.0)
     public void TestRecovery() {
-    	TestTransactionTemplate(true);
-    	TestTransactionTemplate(true);
     	TestTransactionTemplate(true);
     }
     
@@ -171,19 +167,15 @@ public class TransactionManagerTests {
     @GradedTest(name="TestTransaction2", number="1", points=0)
     public void TestTransaction2() {
 		TestTransaction2Template(false);
-		TestTransaction2Template(false);
-		TestTransaction2Template(false);
 	}
 	
     @Test
     @GradedTest(name="TestRecovery2", number="2", points=3.0)
     public void TestRecovery2() {
     	TestTransaction2Template(true);
-    	TestTransaction2Template(true);
-    	TestTransaction2Template(true);
     }
     
-    public void TestBigWriteTemplate(boolean check_recovery) {
+    public void TestBigWriteTemplate(final Random seeds, boolean check_recovery) {
 		LogManagerImpl lm = new LogManagerImpl();
 		StorageManagerImpl sm = new StorageManagerImpl();
 		sm.blockPersistenceForKeys(new long[] {990,991,992,993,994,995,996,997,998,999});
@@ -192,7 +184,7 @@ public class TransactionManagerTests {
 		tm.initAndRecover(sm, lm);
 		sm.in_recovery = false;
 
-		Random r = new Random(TEST_SEEDS[0]);
+		Random r = new Random(seeds.nextLong());
 
 		int nTXNs = 1000;    	
     	for(int i = 0; i < nTXNs; i+=2) {
@@ -255,17 +247,19 @@ public class TransactionManagerTests {
 	@Test
     @GradedTest(name="TestBigWrite", number="1", points=0)
     public void TestBigWrite() {
-		TestBigWriteTemplate(false);
-		TestBigWriteTemplate(false);
-		TestBigWriteTemplate(false);
+		Random seeds = new Random(TEST_SEEDS[0]);
+		TestBigWriteTemplate(seeds, false);
+		TestBigWriteTemplate(seeds, false);
+		TestBigWriteTemplate(seeds, false);
 	}
 	
     @Test
     @GradedTest(name="TestBigWriteRecovery", number="2", points=3.0)
     public void TestBigRecovery() {
-    	TestBigWriteTemplate(true);
-    	TestBigWriteTemplate(true);
-    	TestBigWriteTemplate(true);
+		Random seeds = new Random(TEST_SEEDS[1]);
+    	TestBigWriteTemplate(seeds, true);
+    	TestBigWriteTemplate(seeds, true);
+    	TestBigWriteTemplate(seeds, true);
     }
     
     /**
@@ -330,9 +324,9 @@ public class TransactionManagerTests {
 		assert(lvalue == nTXNs - 1);
 		
 		//Test fails if recovery used too many log iops:
-		assert(iopCount_delta < 500);
+		assert(iopCount_delta < 1000);
 		//... or if the log ever became too long:
-		assert(maxLogSizeUntruncated < 30000);
+		assert(maxLogSizeUntruncated < 50000);
 	}
     
     /**
@@ -349,7 +343,7 @@ public class TransactionManagerTests {
 		tm.initAndRecover(sm, lm);
 		sm.in_recovery = false;
 		
-		Random r = new Random(TEST_SEEDS[0]);
+		Random r = new Random(TEST_SEEDS[1]);
 
 		int maxLogSizeUntruncated = 0;
 		
@@ -436,7 +430,7 @@ public class TransactionManagerTests {
 		assert(maxLogSizeUntruncated < 30000);
 	}
    
-    public void TestRepeatedFailuresTemplate(double failureRate) {
+    public void TestRepeatedFailuresTemplate(final Random seeds, double failureRate) {
 		LogManagerImpl lm = new LogManagerImpl();
 		StorageManagerImpl sm = new StorageManagerImpl();
 		TransactionManager tm = new TransactionManager();
@@ -445,14 +439,15 @@ public class TransactionManagerTests {
 		tm.initAndRecover(sm, lm);
 		sm.in_recovery = false;
 		
-		Random r = new Random(TEST_SEEDS[0]);
+		Random r = new Random(seeds.nextLong());
 
 		//Track what the correct values are for each key across crashes for testing purposes:
 		HashMap<Long, byte[]> lastCommittedValues = new HashMap();
 		
 		//Really stress recovery after repeated crashes. We make sure to succeed at least the first time.
-		//Don't persist any of these keys for this experiment. We want to have to recover from the full log every time.
-		sm.blockPersistenceForKeys(new long[] {0,1,2,3,4,5,6,7,8,9,10,11,12,13,14});
+		//By selecting these keys to be persisted, we ensure we always have to replay the whole log,
+		//while also testing commits that don't handle some keys but not others being persisted.
+		sm.blockPersistenceForKeys(new long[] {0,2,4,6,8,10,12,14});
 		int nTrials = 50;
 		int numCrashes = 0;
 		for(int trial = 0; trial < nTrials; trial++) {
@@ -483,6 +478,10 @@ public class TransactionManagerTests {
 				//Eat the expected CrashException thrown by the crash.
 			}
 			if (shouldCrash) {
+				//Sometimes make persistence happen, sometimes don't!
+				if (r.nextBoolean()) {
+					sm.do_persistence_work();
+				}
 				sm.crash();
 				//Resume processing:
 				lm.resumeServingRequests();
@@ -509,7 +508,7 @@ public class TransactionManagerTests {
 							crashesDescription,
 							entry.getKey(),
 							Arrays.toString(entry.getValue()).substring(0, 10),
-							Arrays.toString(read).substring(0, 10)
+							read == null ? "null" : Arrays.toString(read).substring(0, 10)
 					);
 					assert(false);
 				}
@@ -524,9 +523,10 @@ public class TransactionManagerTests {
     @Test
     @GradedTest(name="TestRepeatedFailures", number="4", points=3.0)
     public void TestRepeatedFailures() {
-    	TestRepeatedFailuresTemplate(0.1);
-    	TestRepeatedFailuresTemplate(0.1);
-    	TestRepeatedFailuresTemplate(0.1);
+    	Random seeds = new Random(TEST_SEEDS[2]);
+    	TestRepeatedFailuresTemplate(seeds, 0.1);
+    	TestRepeatedFailuresTemplate(seeds, 0.1);
+    	TestRepeatedFailuresTemplate(seeds, 0.1);
     }
     
     /**
@@ -535,8 +535,9 @@ public class TransactionManagerTests {
     @Test
     @GradedTest(name="TestRepeatedFailures2", number="4", points=3.0)
     public void TestRepeatedFailures2() {
-    	TestRepeatedFailuresTemplate(0.5);
-    	TestRepeatedFailuresTemplate(0.5);
-    	TestRepeatedFailuresTemplate(0.5);
+    	Random seeds = new Random(TEST_SEEDS[3]);
+    	TestRepeatedFailuresTemplate(seeds, 0.5);
+    	TestRepeatedFailuresTemplate(seeds, 0.5);
+    	TestRepeatedFailuresTemplate(seeds, 0.5);
     }
 }
