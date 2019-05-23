@@ -23,7 +23,7 @@ public class TransactionManagerTests {
     protected static long[] TEST_SEEDS = new long[] {0x12345671234567L, 0x1000, 42, 9};
     
 	@Rule
-    public Timeout globalTimeout = Timeout.seconds(10);
+    public Timeout globalTimeout = Timeout.seconds(20);
 	
 	public void TestTransactionTemplate(boolean check_recovery) {
     	int errors = 0;
@@ -524,9 +524,9 @@ public class TransactionManagerTests {
     @GradedTest(name="TestRepeatedFailures", number="4", points=3.0)
     public void TestRepeatedFailures() {
     	Random seeds = new Random(TEST_SEEDS[2]);
-    	TestRepeatedFailuresTemplate(seeds, 0.1);
-    	TestRepeatedFailuresTemplate(seeds, 0.1);
-    	TestRepeatedFailuresTemplate(seeds, 0.1);
+    	for(int i = 0; i < 10; i++) {
+    		TestRepeatedFailuresTemplate(seeds, 0.1);
+    	}
     }
     
     /**
@@ -536,8 +536,8 @@ public class TransactionManagerTests {
     @GradedTest(name="TestRepeatedFailures2", number="4", points=3.0)
     public void TestRepeatedFailures2() {
     	Random seeds = new Random(TEST_SEEDS[3]);
-    	TestRepeatedFailuresTemplate(seeds, 0.5);
-    	TestRepeatedFailuresTemplate(seeds, 0.5);
-    	TestRepeatedFailuresTemplate(seeds, 0.5);
+    	for(int i = 0; i < 10; i++) {
+    		TestRepeatedFailuresTemplate(seeds, 0.5);
+    	}
     }
 }
