@@ -18,7 +18,7 @@ public class InterleavedTransactionManagerTests {
     protected static long[] TEST_SEEDS = new long[] {0x12345671234567L, 0x456789abcdefL, 0x57194823L, 0xf00b44};
 	
     @Rule
-    public Timeout globalTimeout = Timeout.seconds(10);
+    public Timeout globalTimeout = Timeout.seconds(60);
 	
     /**
       * Runs transactions on multiple threads and ensures that writes are committed transactionally

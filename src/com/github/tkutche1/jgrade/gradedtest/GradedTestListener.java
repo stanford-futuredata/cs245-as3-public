@@ -155,6 +155,13 @@ public class GradedTestListener extends RunListener {
             numFailedGradedTests++;
             this.currentGradedTestResult.setPassed(false);
         }
+        //A bit of snake oil that seems to prevent java out of memory errors
+        //after a timed-out test (the next run test will fail because,
+        //apparently, the timed-out test takes a bit of time to garbage
+        //collect)
+        Thread.sleep(1000);
+        System.gc();
+        Thread.sleep(1000);
     }
 
 }
