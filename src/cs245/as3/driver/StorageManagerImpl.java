@@ -159,6 +159,8 @@ public class StorageManagerImpl implements StorageManager {
 				persistence_listener.writePersisted(key, entry.persisted_version.tag, entry.persisted_version.value);
 			}
 			did_persistence = true;
+
+	   		assert(!Thread.interrupted()); //Cooperate with timeout:
 		}
 		return did_persistence;
 	}

@@ -111,6 +111,7 @@ public class LogManagerImpl implements LogManager {
 			//Crash!
 			throw new CrashException();
 		}
+   		assert(!Thread.interrupted()); //Cooperate with timeout:
 	}
 
 	protected int getIOPCount() {

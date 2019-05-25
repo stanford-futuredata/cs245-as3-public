@@ -351,6 +351,7 @@ public class TransactionManagerTests {
 		long lastSuccessfulKey = 0;
 		byte[] lastSuccessfulValue = null;
 	   	for(int i = 0; i < nTXNs;) {
+	   		assert(!Thread.interrupted()); //Cooperate with timeout:
 	   		//Interleave some number of txns:
 	   		int nToInterleave = r.nextInt(5) + 3;
 	   		boolean shouldCrash = false;
