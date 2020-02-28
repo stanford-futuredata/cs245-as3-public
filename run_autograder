@@ -9,4 +9,4 @@ export PATH=${M2_HOME}/bin:${PATH}
 
 mvn -q package
 
-java -Xmx1536m -Xms1152m -XX:-TieredCompilation -jar target/tests.jar > /autograder/results/results.json
+java -Xmx1500m -Xms1152m -XX:-TieredCompilation -jar target/tests.jar > /autograder/results/results.json

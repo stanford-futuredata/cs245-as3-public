@@ -8,6 +8,6 @@ update-ca-certificates -f
 
 # Need maven 3.6 to suppress some warnings
 cd /opt/
-wget https://www-us.apache.org/dist/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
+wget http://mirror.reverse.net/pub/apache/maven/maven-3/3.6.3/binaries/apache-maven-3.6.3-bin.tar.gz
 tar -xvzf apache-maven-3.6.3-bin.tar.gz
 mv apache-maven-3.6.3 maven

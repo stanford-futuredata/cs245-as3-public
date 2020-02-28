@@ -31,6 +31,11 @@ public class GradescopeJsonObserver implements GraderObserver {
     private static final String OUTPUT = "output";
     private static final String VISIBILITY = "visibility";
 
+    private static final String LEADERBOARD = "leaderboard";
+    private static final String DEFAULT_ORDER = "asc";
+    private static final String VALUE = "value";
+    private static final String ORDER = "order";
+
     private JSONObject json;
     private int prettyPrint;
     private String visibility;
@@ -113,10 +118,29 @@ public class GradescopeJsonObserver implements GraderObserver {
         }
     }
 
+    private JSONObject assembleForLeaderboard(GradedTestResult r) {
+        try {
+            return new JSONObject()
+                    .put(NAME, r.getName())
+                    .put(VALUE, r.getNumber())
+                    .put(ORDER, DEFAULT_ORDER);
+        } catch (JSONException e) {
+            throw new InternalError(e);
+        }
+    }
+
     private JSONArray assemble(List<GradedTestResult> l) {
         JSONArray testResults = new JSONArray();
         for (GradedTestResult r : l) {
             testResults.put(assemble(r));
+        }
+        return testResults;
+    }
+
+    private JSONArray assembleLeaderboard(List<GradedTestResult> l) {
+        JSONArray testResults = new JSONArray();
+        for (GradedTestResult r : l) {
+            testResults.put(assembleForLeaderboard(r));
         }
         return testResults;
     }
@@ -144,6 +168,9 @@ public class GradescopeJsonObserver implements GraderObserver {
             }
             if (grader.hasGradedTestResults()) {
                 this.json.put(TESTS, this.assemble(grader.getGradedTestResults()));
+            }
+            if (grader.hasLeaderboardTestResults()) {
+                this.json.put(LEADERBOARD, this.assembleLeaderboard(grader.getLeaderboardTestResults()));
             }
         } catch (JSONException e) {
             throw new InternalError(e);
@@ -189,6 +216,10 @@ public class GradescopeJsonObserver implements GraderObserver {
      */
     public String getOutput() {
         return this.toString();
+    }
+
+    public JSONObject getJson() {
+        return this.json;
     }
 
     @Override

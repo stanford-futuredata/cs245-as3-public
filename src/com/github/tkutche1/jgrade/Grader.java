@@ -37,6 +37,8 @@ public class Grader {
     private Double maxScore;
     private StringBuilder output;
 
+    private List<GradedTestResult> leaderboardTestResults;
+
     /** Create a new Grader. */
     public Grader() {
         this.observers = new ArrayList<>();
@@ -78,6 +80,17 @@ public class Grader {
      */
     public boolean hasGradedTestResults() {
         return this.gradedTestResults.size() > 0;
+    }
+
+    public boolean hasLeaderboardTestResults() { return this.leaderboardTestResults != null &&
+            this.leaderboardTestResults.size() > 0; }
+
+    public boolean allTestsPassed() {
+        boolean allPassed = true;
+        for (GradedTestResult r : this.gradedTestResults) {
+            allPassed &= r.passed();
+        }
+        return allPassed;
     }
 
     /**
@@ -160,6 +173,8 @@ public class Grader {
         return gradedTestResults;
     }
 
+    public List<GradedTestResult> getLeaderboardTestResults() { return leaderboardTestResults; }
+
     /**
      * Get the output for the Grader.
      * @return All of the output that has been added to the Grader.
@@ -214,6 +229,14 @@ public class Grader {
         this.startTime = 0;
     }
 
+    private List<GradedTestResult> runTests(Class testSuite) {
+        GradedTestListener listener = new GradedTestListener();
+        JUnitCore runner = new JUnitCore();
+        runner.addListener(listener);
+        runner.run(testSuite);
+        return listener.getGradedTestResults();
+    }
+
     /**
      * Runs JUnit tests and attaches a {@link GradedTestListener} to listen
      * for all {@link com.github.tkutche1.jgrade.gradedtest.GradedTest}s and add the
@@ -225,12 +248,13 @@ public class Grader {
      * @param testSuite The class containing the tests.
      */
     public void runJUnitGradedTests(Class testSuite) {
-        GradedTestListener listener = new GradedTestListener();
-        JUnitCore runner = new JUnitCore();
-        runner.addListener(listener);
-        runner.run(testSuite);
-        List<GradedTestResult> results = listener.getGradedTestResults();
+        List<GradedTestResult> results = runTests(testSuite);
         this.graderStrategy.grade(results);
         this.gradedTestResults.addAll(results);
+    }
+
+    public void runLeaderboardTests(Class testSuite) {
+        List<GradedTestResult> results = runTests(testSuite);
+        this.leaderboardTestResults.addAll(results);
     }
 }
