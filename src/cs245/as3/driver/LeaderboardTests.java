@@ -36,7 +36,7 @@ public class LeaderboardTests {
 
         Random r = new Random(TEST_SEEDS[0]);
 
-        for(int i = 0; i < 10000; i++) {
+        for(int i = 0; i < 100; i++) {
             long TXid = i;
             tm.start(TXid);
             for (int j = 0; j < 500; j++) {
